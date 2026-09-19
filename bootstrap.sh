@@ -22,4 +22,3 @@ git -C "$CHECKOUT" checkout --detach "$REPO_COMMIT"
 [[ "$(git -C "$CHECKOUT" rev-parse HEAD)" == "$REPO_COMMIT" ]]
 
 "$CHECKOUT/provision.sh"
-exec entrypoint.sh

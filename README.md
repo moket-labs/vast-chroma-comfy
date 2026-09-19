@@ -18,16 +18,16 @@ Binding to `127.0.0.1` keeps port 18188 behind Vast Instance Portal authenticati
 
 No secret is needed: all three Hugging Face repositories are public. Do not add an HF token, Vast API key, or other credential to this repository or to an on-start command.
 
-## Install before ComfyUI startup
+## Install during official Vast startup
 
-Make a pinned revision of this repository available in the instance, then use this as the Vast **On-start Script**. Replace the two public repository coordinates only after publishing; pin a commit rather than a moving branch.
+Use Vast's standard `entrypoint.sh` on-start command and point its built-in provisioner at the pinned bootstrap script:
 
-```bash
-export REPO_COMMIT='FULL_40_CHARACTER_COMMIT_SHA'
-/path/to/onstart.sh
+```text
+PROVISIONING_SCRIPT=https://raw.githubusercontent.com/moket-labs/vast-chroma-comfy/FULL_40_CHARACTER_COMMIT_SHA/bootstrap.sh
+REPO_COMMIT=FULL_40_CHARACTER_COMMIT_SHA
 ```
 
-`onstart.sh` checks out that exact commit, runs `provision.sh`, and then executes the official Vast `entrypoint.sh` so Supervisor, ComfyUI, the authenticated Instance Portal, and Jupyter all start normally. The commit environment variable is required to avoid a self-referential moving pin.
+`bootstrap.sh` checks out the exact commit and runs `provision.sh` after the official image has initialized `/workspace/ComfyUI`. Keep `entrypoint.sh` as the Vast on-start command; replacing it with this script would skip the official workspace and Supervisor setup.
 
 When the repository already exists in an image or mounted volume, the complete pre-start command is simply:
 
