@@ -73,11 +73,13 @@ def test_readme_uses_localhost_comfyui_args_with_required_flags():
     assert "authentication" in text
 
 
-def test_readme_on_start_checkout_is_restart_safe_and_verifies_exact_commit():
-    text = (ROOT / "README.md").read_text()
-    assert "if [[ ! -d /opt/vast-chroma-comfy/.git ]]" in text
+def test_on_start_checkout_is_restart_safe_and_verifies_exact_commit():
+    text = (ROOT / "onstart.sh").read_text()
+    assert 'if [[ ! -d "$CHECKOUT/.git" ]]' in text
     assert '[[ "$REPO_COMMIT" =~ ^[0-9a-f]{40}$ ]]' in text
-    assert '[[ "$checked_out_commit" == "$REPO_COMMIT" ]]' in text
+    assert '[[ "$(git -C "$CHECKOUT" rev-parse HEAD)" == "$REPO_COMMIT" ]]' in text
+    assert '"$CHECKOUT/provision.sh"' in text
+    assert "exec entrypoint.sh" in text
 
 
 def test_repository_has_mit_license_and_complete_ci_checks():

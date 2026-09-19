@@ -23,30 +23,11 @@ No secret is needed: all three Hugging Face repositories are public. Do not add 
 Make a pinned revision of this repository available in the instance, then use this as the Vast **On-start Script**. Replace the two public repository coordinates only after publishing; pin a commit rather than a moving branch.
 
 ```bash
-#!/usr/bin/env bash
-set -Eeuo pipefail
-readonly REPO_URL='https://github.com/OWNER/vast-chroma-comfy.git'
-readonly REPO_COMMIT='FULL_40_CHARACTER_COMMIT_SHA'
-[[ "$REPO_COMMIT" =~ ^[0-9a-f]{40}$ ]] || {
-  printf 'REPO_COMMIT must be an exact 40-character lowercase commit SHA\n' >&2
-  exit 1
-}
-if [[ ! -d /opt/vast-chroma-comfy/.git ]]; then
-  git clone --filter=blob:none --no-checkout "$REPO_URL" /opt/vast-chroma-comfy
-else
-  git -C /opt/vast-chroma-comfy remote set-url origin "$REPO_URL"
-fi
-git -C /opt/vast-chroma-comfy fetch --depth=1 origin "$REPO_COMMIT"
-git -C /opt/vast-chroma-comfy checkout --detach "$REPO_COMMIT"
-checked_out_commit="$(git -C /opt/vast-chroma-comfy rev-parse HEAD)"
-[[ "$checked_out_commit" == "$REPO_COMMIT" ]] || {
-  printf 'checked-out commit does not match REPO_COMMIT\n' >&2
-  exit 1
-}
-exec /opt/vast-chroma-comfy/provision.sh
+export REPO_COMMIT='FULL_40_CHARACTER_COMMIT_SHA'
+/path/to/onstart.sh
 ```
 
-The placeholders are intentional because this repository is created and committed locally only. Do not use the example until it is published and both values are replaced.
+`onstart.sh` checks out that exact commit, runs `provision.sh`, and then executes the official Vast `entrypoint.sh` so Supervisor, ComfyUI, the authenticated Instance Portal, and Jupyter all start normally. The commit environment variable is required to avoid a self-referential moving pin.
 
 When the repository already exists in an image or mounted volume, the complete pre-start command is simply:
 
