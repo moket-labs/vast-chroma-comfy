@@ -1,0 +1,41 @@
+{
+  "date_utc": "2026-09-19",
+  "measurement": "vast_rent_accepted_to_valid_non_black_png",
+  "environment": {
+    "instance_id": 51637876,
+    "host_id": 34742,
+    "machine_id": 7339,
+    "location": "Utah, US",
+    "gpu": "RTX 3090",
+    "gpu_vram_mb": 24576,
+    "image": "vastai/comfy:v0.35.0-cuda-13.2-py312",
+    "repository_commit": "08c57d90db3eddcd5b53f1b21bc9923cea03771c",
+    "hourly_total_usd": 0.28888888888888886,
+    "storage_gb": 60,
+    "host_reported_download_mbps": 6937.5,
+    "container_image_cache": "warm_from_prior_failed_attempt",
+    "model_cache": "cold"
+  },
+  "timing_seconds": {
+    "parallel_model_provision": 50,
+    "smoke_generation": 28.111,
+    "rent_accepted_to_valid_image": 161.759
+  },
+  "validation": {
+    "ok": true,
+    "image_size": [512, 512],
+    "channel_extrema": [[2, 255], [0, 255], [0, 245]],
+    "channel_means": [119.153481, 135.977085, 77.891365],
+    "under_300_seconds": true
+  },
+  "cost": {
+    "team_credit_before_usd": 0.8389905298060003,
+    "team_credit_after_usd": 0.5386286858060005,
+    "total_credit_delta_usd": 0.300362,
+    "includes": ["GPU runtime", "storage", "network transfer"]
+  },
+  "cleanup": {
+    "provider_confirmed_destroyed": true,
+    "residual_instances": []
+  }
+}

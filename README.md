@@ -87,6 +87,10 @@ Measure both cases separately:
 
 `provision.sh` also emits `provision_seconds`, while the smoke result emits `submit`, `generation`, and `smoke_total`. These are diagnostic subdivisions only and must not replace the end-to-end acceptance metric. Keep the raw JSON from each run; do not report a sub-five-minute result unless `ok` is true and `rent_accepted_to_valid_image` is below 300 seconds.
 
+## Verified benchmark
+
+The first successful destructive rebuild is recorded in `benchmarks/2026-09-19-vast-rtx3090.json`: model-cold provisioning on an RTX 3090 completed in 50 seconds and rent acceptance to a validated 512×512 non-black PNG took **161.759 seconds (2m 41.759s)**. The host already had the base container layers cached from a prior failed attempt, so this proves the repeat-rebuild path, not an arbitrary-host cold-image guarantee.
+
 ## Development
 
 ```bash
