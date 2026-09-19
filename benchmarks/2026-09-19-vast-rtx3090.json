@@ -30,8 +30,8 @@
   },
   "cost": {
     "team_credit_before_usd": 0.8389905298060003,
-    "team_credit_after_usd": 0.5386286858060005,
-    "total_credit_delta_usd": 0.300362,
+    "team_credit_after_usd": 0.5312831898060004,
+    "total_credit_delta_usd": 0.307707,
     "includes": ["GPU runtime", "storage", "network transfer"]
   },
   "cleanup": {
