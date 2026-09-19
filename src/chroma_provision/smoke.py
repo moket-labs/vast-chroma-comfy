@@ -94,7 +94,7 @@ def build_prompt(text: str, width: int, height: int, seed: int) -> dict:
     }
 
 
-def validate_png(content: bytes) -> dict:
+def validate_png(content: bytes, expected_size: tuple[int, int] | None = None) -> dict:
     try:
         with Image.open(io.BytesIO(content)) as image:
             image.load()
@@ -108,6 +108,11 @@ def validate_png(content: bytes) -> dict:
         raise
     except Exception as error:
         raise ValueError(f"invalid PNG: {error}") from error
+    if expected_size is not None and tuple(size) != expected_size:
+        raise ValueError(
+            f"output PNG dimensions {size[0]}x{size[1]}; "
+            f"expected {expected_size[0]}x{expected_size[1]}"
+        )
     if max(high for _, high in extrema) == 0 or max(means) == 0:
         raise ValueError("output PNG is all-black")
     return {"size": size, "extrema": extrema, "means": means}
@@ -119,7 +124,9 @@ class ComfyClient:
         self.timeout = timeout
         self.client_id = str(uuid.uuid4())
 
-    def _json(self, path: str, payload: dict | None = None) -> dict:
+    def _json(
+        self, path: str, payload: dict | None = None, timeout: float | None = None
+    ) -> dict:
         data = None if payload is None else json.dumps(payload).encode()
         request = urllib.request.Request(
             self.base_url + path,
@@ -127,27 +134,41 @@ class ComfyClient:
             headers={"Content-Type": "application/json"},
             method="POST" if data is not None else "GET",
         )
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+        with urllib.request.urlopen(
+            request, timeout=self.timeout if timeout is None else timeout
+        ) as response:
             return json.load(response)
 
-    def submit(self, graph: dict) -> str:
-        response = self._json("/prompt", {"prompt": graph, "client_id": self.client_id})
+    def submit(self, graph: dict, timeout: float | None = None) -> str:
+        response = self._json(
+            "/prompt", {"prompt": graph, "client_id": self.client_id}, timeout
+        )
         prompt_id = response.get("prompt_id")
         if not prompt_id:
             raise RuntimeError(f"ComfyUI rejected prompt: {response}")
         return str(prompt_id)
 
-    def history(self, prompt_id: str) -> dict:
-        return self._json("/history/" + urllib.parse.quote(prompt_id, safe=""))
+    def history(self, prompt_id: str, timeout: float | None = None) -> dict:
+        return self._json(
+            "/history/" + urllib.parse.quote(prompt_id, safe=""), timeout=timeout
+        )
 
-    def image(self, descriptor: dict) -> bytes:
+    def image(self, descriptor: dict, timeout: float | None = None) -> bytes:
         query = urllib.parse.urlencode(
             {key: descriptor[key] for key in ("filename", "subfolder", "type")}
         )
         with urllib.request.urlopen(
-            self.base_url + "/view?" + query, timeout=self.timeout
+            self.base_url + "/view?" + query,
+            timeout=self.timeout if timeout is None else timeout,
         ) as response:
             return response.read()
+
+
+def _remaining(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError("smoke test deadline expired during network request")
+    return remaining
 
 
 def run_smoke(
@@ -162,11 +183,13 @@ def run_smoke(
 ) -> dict:
     started_wall = time.time()
     started = time.monotonic()
-    prompt_id = client.submit(build_prompt(text, width, height, seed))
-    submitted = time.monotonic()
     deadline = started + timeout
+    prompt_id = client.submit(
+        build_prompt(text, width, height, seed), timeout=_remaining(deadline)
+    )
+    submitted = time.monotonic()
     while time.monotonic() < deadline:
-        history = client.history(prompt_id)
+        history = client.history(prompt_id, timeout=_remaining(deadline))
         record = history.get(prompt_id)
         if record:
             status = record.get("status", {})
@@ -178,7 +201,10 @@ def run_smoke(
                 for image in output.get("images", [])
             ]
             if images:
-                image = validate_png(client.image(images[0]))
+                image = validate_png(
+                    client.image(images[0], timeout=_remaining(deadline)),
+                    expected_size=(width, height),
+                )
                 finished = time.monotonic()
                 timings = {
                     "submit": round(submitted - started, 3),
@@ -196,7 +222,7 @@ def run_smoke(
                     "timing_seconds": timings,
                     "started_at_epoch": started_wall,
                 }
-        time.sleep(poll_interval)
+        time.sleep(min(poll_interval, _remaining(deadline)))
     raise TimeoutError(f"no valid image within {timeout:.1f}s for prompt {prompt_id}")
 
 

@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 readonly COMFYUI_ROOT="${COMFYUI_ROOT:-/workspace/ComfyUI}"
-readonly WORKFLOW_DEST="${WORKFLOW_DEST:-/workspace/ComfyUI/user/default/workflows/Chroma1-HD-RTX3090.json}"
+readonly WORKFLOW_DEST="${WORKFLOW_DEST:-${COMFYUI_ROOT}/user/default/workflows/Chroma1-HD-RTX3090.json}"
 readonly WORKFLOW_SIZE="${WORKFLOW_SIZE:-768}"
 if [[ -x /venv/main/bin/python ]]; then
   default_python="/venv/main/bin/python"
@@ -83,6 +83,10 @@ install_workflow() {
 main() {
   local -a pids=()
   local failed=0 pid elapsed
+  if [[ " ${COMFYUI_ARGS:-} " != *" --force-upcast-attention "* ]]; then
+    log "COMFYUI_ARGS must include --force-upcast-attention"
+    return 1
+  fi
   require_command hf
   require_command "$PYTHON_BIN"
   export PYTHONPATH="${SCRIPT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"

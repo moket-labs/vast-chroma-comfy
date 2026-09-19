@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -26,4 +28,63 @@ def test_provision_script_is_strict_parallel_atomic_and_idempotent():
 
 def test_exact_workflow_destination_is_configured():
     text = (ROOT / "provision.sh").read_text()
-    assert "/workspace/ComfyUI/user/default/workflows/Chroma1-HD-RTX3090.json" in text
+    assert (
+        "${WORKFLOW_DEST:-${COMFYUI_ROOT}/user/default/workflows/"
+        "Chroma1-HD-RTX3090.json}" in text
+    )
+
+
+def test_provision_fails_before_download_without_force_upcast_attention():
+    env = os.environ.copy()
+    env["COMFYUI_ARGS"] = "--listen 127.0.0.1 --port 18188"
+    result = subprocess.run(
+        ["bash", str(ROOT / "provision.sh")],
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "COMFYUI_ARGS must include --force-upcast-attention" in result.stderr
+
+
+def test_readme_uses_localhost_comfyui_args_with_required_flags():
+    text = (ROOT / "README.md").read_text()
+    comfyui_args = next(
+        line for line in text.splitlines() if line.startswith("COMFYUI_ARGS=")
+    )
+    assert "--listen 127.0.0.1" in comfyui_args
+    assert "--listen 0.0.0.0" not in comfyui_args
+    for flag in (
+        "--disable-auto-launch",
+        "--disable-xformers",
+        "--port 18188",
+        "--enable-cors-header",
+        "--force-upcast-attention",
+    ):
+        assert flag in comfyui_args
+    assert "Vast Instance Portal" in text
+    assert "authentication" in text
+
+
+def test_readme_on_start_checkout_is_restart_safe_and_verifies_exact_commit():
+    text = (ROOT / "README.md").read_text()
+    assert "if [[ ! -d /opt/vast-chroma-comfy/.git ]]" in text
+    assert '[[ "$REPO_COMMIT" =~ ^[0-9a-f]{40}$ ]]' in text
+    assert '[[ "$checked_out_commit" == "$REPO_COMMIT" ]]' in text
+
+
+def test_repository_has_mit_license_and_complete_ci_checks():
+    license_text = (ROOT / "LICENSE").read_text()
+    assert "MIT License" in license_text
+    assert "Permission is hereby granted, free of charge" in license_text
+
+    ci = (ROOT / ".github/workflows/ci.yml").read_text()
+    for command in (
+        "pytest",
+        "ruff check",
+        "ruff format --check",
+        "bash -n provision.sh",
+        "shellcheck provision.sh",
+    ):
+        assert command in ci

@@ -8,12 +8,13 @@ Use the official Vast interactive ComfyUI template with these exact values:
 
 ```text
 Docker image: vastai/comfy:v0.35.0-cuda-13.2-py312
-Disk: at least 40 GB
+Disk: at least 60 GB
 GPU: RTX 3090 (24 GB)
-COMFYUI_ARGS=--listen 0.0.0.0 --port 18188 --force-upcast-attention
+COMFYUI_ARGS=--listen 127.0.0.1 --disable-auto-launch --disable-xformers --port 18188 --enable-cors-header --force-upcast-attention
 ```
 
 `--force-upcast-attention` is required for this tested 3090 configuration. Without it, ComfyUI can report success while writing an all-black image.
+Binding to `127.0.0.1` keeps port 18188 behind Vast Instance Portal authentication instead of exposing ComfyUI directly on every network interface.
 
 No secret is needed: all three Hugging Face repositories are public. Do not add an HF token, Vast API key, or other credential to this repository or to an on-start command.
 
@@ -26,9 +27,22 @@ Make a pinned revision of this repository available in the instance, then use th
 set -Eeuo pipefail
 readonly REPO_URL='https://github.com/OWNER/vast-chroma-comfy.git'
 readonly REPO_COMMIT='FULL_40_CHARACTER_COMMIT_SHA'
-git clone --filter=blob:none "$REPO_URL" /opt/vast-chroma-comfy
+[[ "$REPO_COMMIT" =~ ^[0-9a-f]{40}$ ]] || {
+  printf 'REPO_COMMIT must be an exact 40-character lowercase commit SHA\n' >&2
+  exit 1
+}
+if [[ ! -d /opt/vast-chroma-comfy/.git ]]; then
+  git clone --filter=blob:none --no-checkout "$REPO_URL" /opt/vast-chroma-comfy
+else
+  git -C /opt/vast-chroma-comfy remote set-url origin "$REPO_URL"
+fi
 git -C /opt/vast-chroma-comfy fetch --depth=1 origin "$REPO_COMMIT"
 git -C /opt/vast-chroma-comfy checkout --detach "$REPO_COMMIT"
+checked_out_commit="$(git -C /opt/vast-chroma-comfy rev-parse HEAD)"
+[[ "$checked_out_commit" == "$REPO_COMMIT" ]] || {
+  printf 'checked-out commit does not match REPO_COMMIT\n' >&2
+  exit 1
+}
 exec /opt/vast-chroma-comfy/provision.sh
 ```
 
