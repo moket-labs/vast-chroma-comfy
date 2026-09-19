@@ -13,6 +13,13 @@ else
 fi
 readonly PYTHON_BIN="${PYTHON_BIN:-$default_python}"
 unset default_python
+if [[ -x /venv/main/bin/hf ]]; then
+  default_hf="/venv/main/bin/hf"
+else
+  default_hf="hf"
+fi
+readonly HF_BIN="${HF_BIN:-$default_hf}"
+unset default_hf
 START_EPOCH="$(date +%s)"
 readonly START_EPOCH
 
@@ -47,7 +54,7 @@ download_model() {
 
   temp="$(mktemp -d "${target_dir}/.chroma-download.XXXXXX")"
   log "downloading ${repo}/${remote}"
-  if ! hf download "$repo" "$remote" --local-dir "$temp" --quiet >/dev/null; then
+  if ! "$HF_BIN" download "$repo" "$remote" --local-dir "$temp" --quiet >/dev/null; then
     rm -rf -- "$temp"
     return 1
   fi
@@ -87,7 +94,7 @@ main() {
     log "COMFYUI_ARGS must include --force-upcast-attention"
     return 1
   fi
-  require_command hf
+  require_command "$HF_BIN"
   require_command "$PYTHON_BIN"
   export PYTHONPATH="${SCRIPT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
 

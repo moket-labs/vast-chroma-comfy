@@ -26,6 +26,12 @@ def test_provision_script_is_strict_parallel_atomic_and_idempotent():
     assert "already valid" in text
 
 
+def test_provision_script_uses_the_official_venv_hf_binary():
+    text = (ROOT / "provision.sh").read_text()
+    assert "/venv/main/bin/hf" in text
+    assert 'readonly HF_BIN="${HF_BIN:-$default_hf}"' in text
+
+
 def test_exact_workflow_destination_is_configured():
     text = (ROOT / "provision.sh").read_text()
     assert (
