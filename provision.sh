@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 readonly COMFYUI_ROOT="${COMFYUI_ROOT:-/workspace/ComfyUI}"
 readonly WORKFLOW_DEST="${WORKFLOW_DEST:-${COMFYUI_ROOT}/user/default/workflows/Chroma1-HD-RTX3090.json}"
+readonly IMG2IMG_WORKFLOW_DEST="${IMG2IMG_WORKFLOW_DEST:-${COMFYUI_ROOT}/user/default/workflows/Chroma1-HD-Img2Img.json}"
 readonly WORKFLOW_SIZE="${WORKFLOW_SIZE:-768}"
 if [[ -x /venv/main/bin/python ]]; then
   default_python="/venv/main/bin/python"
@@ -74,7 +75,7 @@ download_model() {
 }
 
 install_workflow() {
-  local workflow_dir temp
+  local workflow_dir temp img2img_temp
   workflow_dir="$(dirname -- "$WORKFLOW_DEST")"
   mkdir -p -- "$workflow_dir"
   temp="$(mktemp "${workflow_dir}/.Chroma1-HD-RTX3090.XXXXXX.json")"
@@ -85,6 +86,15 @@ install_workflow() {
   fi
   mv -f -- "$temp" "$WORKFLOW_DEST"
   log "installed workflow: $WORKFLOW_DEST"
+
+  img2img_temp="$(mktemp "${workflow_dir}/.Chroma1-HD-Img2Img.XXXXXX.json")"
+  if ! cp -- "$SCRIPT_DIR/workflows/Chroma1-HD-Img2Img.json" "$img2img_temp" ||
+     ! "$PYTHON_BIN" -m json.tool "$img2img_temp" >/dev/null; then
+    rm -f -- "$img2img_temp"
+    return 1
+  fi
+  mv -f -- "$img2img_temp" "$IMG2IMG_WORKFLOW_DEST"
+  log "installed workflow: $IMG2IMG_WORKFLOW_DEST"
 }
 
 main() {

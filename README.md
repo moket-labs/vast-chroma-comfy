@@ -29,6 +29,10 @@ REPO_COMMIT=FULL_40_CHARACTER_COMMIT_SHA
 
 `bootstrap.sh` checks out the exact commit and runs `provision.sh` after the official image has initialized `/workspace/ComfyUI`. Keep `entrypoint.sh` as the Vast on-start command; replacing it with this script would skip the official workspace and Supervisor setup.
 
+## Image-to-image workflow
+
+Provisioning also installs `Chroma1-HD-Img2Img.json`. Open it from ComfyUI's **Workflows** menu, upload a source image in the **REFERENCE IMAGE** node, edit the positive prompt, and queue it. The **DENOISE** `SplitSigmas` node defaults to step 18 of 26 (roughly 0.31 denoise): raise the split step to preserve more of the input, or lower it to allow larger changes. This is the preferred path for preserving a known character or composition.
+
 When the repository already exists in an image or mounted volume, the complete pre-start command is simply:
 
 ```bash
